@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from core.retrieval import semantic_search
+from core.rag import OllamaUnavailableError, stream_rag_answer
 from core.vector_store import VectorStore
 from ui.sources import render_mock_sources, render_source
 from ui.states import add_message
@@ -72,10 +73,24 @@ def handle_question(store: VectorStore) -> None:
         return
     add_message("user", question)
     if st.session_state.mode == "rag":
-        add_message(
-            "assistant",
-            "Le mode RAG sera connecté à Ollama dans une prochaine étape. Passez en Recherche sémantique pour consulter les extraits.",
-        )
+        results = semantic_search(store, question)
+        if not results:
+            add_message(
+                "assistant",
+                "Les documents fournis ne permettent pas de répondre.",
+            )
+        else:
+            try:
+                with st.chat_message("assistant"):
+                    response = st.write_stream(stream_rag_answer(question, results))
+            except OllamaUnavailableError as error:
+                add_message("assistant", str(error))
+            else:
+                add_message(
+                    "assistant",
+                    response,
+                    sources=[result.as_source() for result in results],
+                )
     else:
         results = semantic_search(store, question)
         if results:
