@@ -7,7 +7,9 @@ import streamlit as st
 from config.settings import settings
 from core.document_loader import load_candidates
 from core.embeddings import embed_chunks
+from core.ingestion import persist_ingestion
 from core.text_splitter import split_documents
+from core.vector_store import VectorStore
 from ui.chat import handle_mock_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
 from ui.states import init_session_state
@@ -29,10 +31,16 @@ def load_styles() -> None:
         )
 
 
+@st.cache_resource
+def get_vector_store() -> VectorStore:
+    return VectorStore()
+
+
 def main() -> None:
     load_styles()
     init_session_state()
-    _, selected_files, index_requested = render_sidebar()
+    store = get_vector_store()
+    _, selected_files, index_requested = render_sidebar(indexed_hashes=store.known_hashes())
     if index_requested:
         with st.status("Extraction locale des documents…", expanded=True) as status:
             result = load_candidates(selected_files)
@@ -53,18 +61,29 @@ def main() -> None:
                 )
                 dimension = len(st.session_state.chunk_embeddings[0])
                 st.write(f"{len(st.session_state.chunk_embeddings)} vecteur(s) de dimension {dimension} créé(s).")
-            st.session_state.indexing_status = "embedded" if result.documents else "failed"
+                st.write("Enregistrement dans la base vectorielle persistante…")
+                report = persist_ingestion(
+                    store,
+                    selected_files,
+                    st.session_state.chunks,
+                    st.session_state.chunk_embeddings,
+                )
+                st.session_state.indexing_report = {
+                    "documents": report.document_count,
+                    "chunks": report.chunk_count,
+                    "message": (
+                        f"{report.document_count} document(s) et {report.chunk_count} chunk(s) "
+                        "indexés localement."
+                    ),
+                }
+            st.session_state.indexing_status = "indexed" if result.documents else "failed"
             status.update(
                 label="Extraction terminée" if result.documents else "Échec de l'extraction",
                 state="complete" if result.documents else "error",
             )
-        st.session_state.indexing_report = {
-            "documents": len(selected_files),
-            "message": "Texte extrait, découpé et vectorisé localement.",
-        }
     for error in st.session_state.errors:
         st.error(error)
-    if st.session_state.indexing_status == "embedded":
+    if st.session_state.indexing_status == "indexed":
         st.info(st.session_state.indexing_report["message"], icon="✅")
         with st.expander("Contrôler les premiers chunks"):
             for chunk in st.session_state.chunks[:5]:
