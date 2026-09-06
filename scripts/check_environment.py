@@ -27,7 +27,7 @@ REQUIRED_IMPORTS = {
     "langchain_ollama": "LangChain Ollama",
     "chromadb": "ChromaDB",
     "sentence_transformers": "Sentence Transformers",
-    "fitz": "PyMuPDF",
+    "pymupdf": "PyMuPDF",
 }
 
 

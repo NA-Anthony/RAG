@@ -1,19 +1,19 @@
 # Interface utilisateur
-streamlit
+streamlit==1.63.0
 
 # Composants principaux de LangChain
-langchain
-langchain-community
-langchain-text-splitters
+langchain==1.4.0
+langchain-community==0.4.2
+langchain-text-splitters==1.1.2
 
 # Intégrations locales utilisées par le projet
-langchain-chroma
-langchain-huggingface
-langchain-ollama
+langchain-chroma==1.1.0
+langchain-huggingface==1.2.2
+langchain-ollama==1.1.0
 
 # Base vectorielle et embeddings locaux
-chromadb
-sentence-transformers
+chromadb==1.5.9
+sentence-transformers==6.0.1
 
 # Lecture des documents PDF
-pymupdf
+pymupdf==1.28.2
