@@ -1,0 +1,6 @@
+# Installation reproductible sur une machine Linux sans GPU NVIDIA.
+# PyTorch doit provenir du dépôt CPU officiel pour éviter les paquets CUDA.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0+cpu
+
+-r requirements.txt

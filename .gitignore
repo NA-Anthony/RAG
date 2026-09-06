@@ -1,5 +1,6 @@
 # Environnement Python local
 .venv/
+.tools/
 
 # Fichiers générés par Python
 __pycache__/
@@ -10,6 +11,7 @@ __pycache__/
 # Données locales de l'application
 data/chroma_db/
 data/uploads/
+data/ollama_models/
 
 # Configuration privée
 .env

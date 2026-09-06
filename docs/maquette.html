@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maquette — RAG Local</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page: #f3f7f5;
+      --panel: #ffffff;
+      --text: #17211c;
+      --muted: #627069;
+      --line: #dce6e0;
+      --green: #17734b;
+      --green-soft: #e3f4eb;
+      --blue: #2868c7;
+      --blue-soft: #e9f1fd;
+      --shadow: 0 18px 45px rgba(20, 55, 38, .09);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #e1f2e8, transparent 38%), var(--page);
+      color: var(--text);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+    button, input { font: inherit; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 310px 1fr; }
+    aside { padding: 28px 22px; background: rgba(255,255,255,.8); border-right: 1px solid var(--line); }
+    main { padding: 34px clamp(24px, 5vw, 72px); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 25px; margin-bottom: 5px; }
+    h2 { font-size: clamp(27px, 4vw, 46px); line-height: 1.08; max-width: 760px; }
+    h3 { font-size: 15px; }
+    .muted { color: var(--muted); }
+    .local { display: inline-flex; gap: 8px; align-items: center; color: var(--green); font-weight: 700; }
+    .local::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #25a86b; box-shadow: 0 0 0 4px var(--green-soft); }
+    .section { margin-top: 30px; }
+    .drop { border: 1.5px dashed #9bb8a8; border-radius: 14px; padding: 20px; text-align: center; background: #f8fbf9; }
+    .primary, .choice, .state-button { border: 0; border-radius: 10px; cursor: pointer; }
+    .primary { width: 100%; padding: 11px; background: var(--green); color: white; font-weight: 700; margin-top: 12px; }
+    .primary:disabled { opacity: .45; cursor: not-allowed; }
+    .modes { display: grid; gap: 8px; }
+    .choice { text-align: left; padding: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+    .choice.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; }
+    .state-button { padding: 8px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
+    .state-button.active { background: var(--text); color: white; }
+    .view { display: none; max-width: 920px; }
+    .view.active { display: block; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 30px 0; }
+    .card, .message, .source { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); }
+    .card { padding: 22px; }
+    .number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--green); background: var(--green-soft); font-weight: 800; margin-bottom: 18px; }
+    .composer { display: flex; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .composer input { flex: 1; border: 0; outline: 0; background: transparent; color: inherit; padding: 8px; }
+    .composer button { border: 0; border-radius: 9px; padding: 8px 14px; background: var(--blue); color: white; }
+    .progress { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 18px 0; }
+    .progress span { display: block; width: 68%; height: 100%; background: linear-gradient(90deg, var(--green), #37aa74); }
+    .message { padding: 22px; margin: 14px 0; }
+    .message.user { margin-left: 15%; background: #f7faf8; }
+    .source { padding: 17px; margin: 10px 0; border-left: 4px solid var(--blue); }
+    .pill { display: inline-block; border-radius: 99px; padding: 3px 9px; background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 700; }
+    @media (prefers-color-scheme: dark) {
+      :root { --page:#111814; --panel:#18221d; --text:#eaf1ed; --muted:#a2afa8; --line:#304139; --green-soft:#173d2b; --blue-soft:#172c4b; --shadow:none; }
+      aside, .drop, .message.user { background:#151e19; }
+    }
+    @media (max-width: 760px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+      .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <h1>RAG Local</h1>
+      <p class="local">Données traitées localement</p>
+      <div class="section">
+        <h3>Ajouter des documents</h3>
+        <div class="drop">Déposez des PDF, TXT ou MD<br><span class="muted">Import multiple accepté</span></div>
+        <button class="primary" disabled>Indexer les documents</button>
+      </div>
+      <div class="section">
+        <h3>Mode de réponse</h3>
+        <div class="modes">
+          <button class="choice active">Recherche sémantique<br><small>Afficher les extraits</small></button>
+          <button class="choice">Assistant RAG<br><small>Rédiger avec Ollama</small></button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Bibliothèque</h3>
+        <p class="muted">Aucun document indexé.</p>
+      </div>
+    </aside>
+    <main>
+      <nav class="toolbar" aria-label="États de la maquette">
+        <button class="state-button active" data-view="empty">Accueil</button>
+        <button class="state-button" data-view="indexing">Indexation</button>
+        <button class="state-button" data-view="search">Recherche</button>
+        <button class="state-button" data-view="rag">Assistant RAG</button>
+      </nav>
+
+      <section id="empty" class="view active">
+        <span class="pill">100 % local</span>
+        <h2>Interrogez vos documents sans les envoyer ailleurs.</h2>
+        <p class="muted">Ajoutez vos sources, indexez-les, puis choisissez entre extraits bruts et réponse assistée.</p>
+        <div class="steps">
+          <article class="card"><div class="number">1</div><h3>Ajoutez</h3><p class="muted">PDF, texte ou Markdown.</p></article>
+          <article class="card"><div class="number">2</div><h3>Indexez</h3><p class="muted">Embeddings et stockage locaux.</p></article>
+          <article class="card"><div class="number">3</div><h3>Questionnez</h3><p class="muted">Réponses accompagnées de preuves.</p></article>
+        </div>
+        <div class="composer"><input disabled placeholder="Indexez un document pour poser une question"><button disabled>Envoyer</button></div>
+      </section>
+
+      <section id="indexing" class="view">
+        <span class="pill">Indexation</span><h2>Préparation de votre bibliothèque…</h2>
+        <div class="card"><strong>Création des embeddings</strong><div class="progress"><span></span></div><p class="muted">Étape 4 sur 5 · 34 chunks traités</p></div>
+      </section>
+
+      <section id="search" class="view">
+        <span class="pill">Recherche sémantique</span><h2>Les passages les plus proches.</h2>
+        <div class="message user">Quels sont les principaux objectifs du projet ?</div>
+        <article class="source"><strong>guide-projet.pdf · page 3</strong><p>Le projet doit permettre d’importer des documents, de les indexer localement et de vérifier chaque source…</p><span class="muted">Pertinence élevée · chunk 4</span></article>
+        <article class="source"><strong>notes.md</strong><p>La confidentialité locale et la traçabilité des réponses sont des critères essentiels…</p><span class="muted">Pertinence moyenne · chunk 2</span></article>
+      </section>
+
+      <section id="rag" class="view">
+        <span class="pill">Assistant RAG · Ollama</span><h2>Une réponse, avec ses preuves.</h2>
+        <div class="message user">Quels sont les principaux objectifs du projet ?</div>
+        <div class="message"><strong>Réponse fondée sur 2 extraits</strong><p>Le projet vise à indexer des documents localement, permettre leur interrogation et rendre chaque réponse vérifiable grâce aux fichiers et pages d’origine.</p></div>
+        <details class="card"><summary><strong>Voir les sources utilisées</strong></summary><article class="source"><strong>guide-projet.pdf · page 3 · chunk 4</strong><p>Le projet doit permettre d’importer des documents…</p></article></details>
+      </section>
+    </main>
+  </div>
+  <script>
+    const buttons = document.querySelectorAll('[data-view]');
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      buttons.forEach((item) => item.classList.remove('active'));
+      document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById(button.dataset.view).classList.add('active');
+    }));
+  </script>
+</body>
+</html>
