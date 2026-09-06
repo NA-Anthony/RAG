@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from core.retrieval import semantic_search
+from core.vector_store import VectorStore
 from ui.sources import render_mock_sources, render_source
 from ui.states import add_message
 
@@ -59,15 +61,32 @@ def render_history() -> None:
                 render_source(**source)
 
 
-def handle_mock_question() -> None:
-    """Simule une réponse afin de valider uniquement la gestion d'état."""
-    question = st.chat_input("Message de démonstration — aucune recherche exécutée")
+def handle_question(store: VectorStore) -> None:
+    """Répond dans le mode actif ; la recherche pure reste sans LLM."""
+    empty_library = store.count() == 0
+    question = st.chat_input(
+        "Posez une question sur vos documents",
+        disabled=empty_library,
+    )
     if not question:
         return
     add_message("user", question)
-    active_mode = "Assistant RAG" if st.session_state.mode == "rag" else "Recherche"
-    add_message(
-        "assistant",
-        f"Réponse fictive du mode {active_mode}. La logique documentaire sera connectée ensuite.",
-    )
+    if st.session_state.mode == "rag":
+        add_message(
+            "assistant",
+            "Le mode RAG sera connecté à Ollama dans une prochaine étape. Passez en Recherche sémantique pour consulter les extraits.",
+        )
+    else:
+        results = semantic_search(store, question)
+        if results:
+            add_message(
+                "assistant",
+                f"{len(results)} passage(s) pertinent(s) trouvé(s), sans génération de texte.",
+                sources=[result.as_source() for result in results],
+            )
+        else:
+            add_message(
+                "assistant",
+                "Aucun passage suffisamment pertinent n'a été trouvé dans la bibliothèque.",
+            )
     st.rerun()

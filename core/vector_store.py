@@ -104,6 +104,15 @@ class VectorStore:
     def count(self) -> int:
         return self.collection.count()
 
+    def query(self, embedding: list[float], *, k: int = 4) -> dict:
+        if self.count() == 0:
+            return {"ids": [[]], "documents": [[]], "metadatas": [[]], "distances": [[]]}
+        return self.collection.query(
+            query_embeddings=[embedding],
+            n_results=min(k, self.count()),
+            include=["documents", "metadatas", "distances"],
+        )
+
     def delete_document(self, document_id: str) -> None:
         self.collection.delete(where={"document_id": document_id})
 

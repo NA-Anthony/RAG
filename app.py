@@ -10,7 +10,7 @@ from core.embeddings import embed_chunks
 from core.ingestion import persist_ingestion
 from core.text_splitter import split_documents
 from core.vector_store import VectorStore
-from ui.chat import handle_mock_question, render_history, render_welcome
+from ui.chat import handle_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
 from ui.states import init_session_state
 
@@ -99,7 +99,7 @@ def main() -> None:
         render_history()
     else:
         render_welcome()
-    handle_mock_question()
+    handle_question(store)
 
 
 if __name__ == "__main__":

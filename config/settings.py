@@ -25,6 +25,7 @@ class Settings:
     chunk_size: int = int(os.getenv("RAG_CHUNK_SIZE", "900"))
     chunk_overlap: int = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))
     retrieval_k: int = int(os.getenv("RAG_RETRIEVAL_K", "4"))
+    max_distance: float = float(os.getenv("RAG_MAX_DISTANCE", "0.85"))
     max_file_size_mb: int = 25
     uploads_dir: Path = PROJECT_ROOT / "data" / "uploads"
     chroma_dir: Path = PROJECT_ROOT / "data" / "chroma_db"
