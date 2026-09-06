@@ -6,6 +6,7 @@ import streamlit as st
 
 from config.settings import settings
 from core.document_loader import load_candidates
+from core.text_splitter import split_documents
 from ui.chat import handle_mock_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
 from ui.states import init_session_state
@@ -37,26 +38,37 @@ def main() -> None:
             st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
             st.session_state.extracted_documents = result.documents
             st.session_state.errors = result.errors
-            st.session_state.indexing_status = "extracted" if result.documents else "failed"
+            if result.documents:
+                st.write("Découpage en fragments avec conservation des sources…")
+                st.session_state.chunks = split_documents(
+                    result.documents,
+                    chunk_size=settings.chunk_size,
+                    chunk_overlap=settings.chunk_overlap,
+                )
+                st.write(f"{len(st.session_state.chunks)} chunk(s) créé(s).")
+            st.session_state.indexing_status = "chunked" if result.documents else "failed"
             status.update(
                 label="Extraction terminée" if result.documents else "Échec de l'extraction",
                 state="complete" if result.documents else "error",
             )
         st.session_state.indexing_report = {
             "documents": len(selected_files),
-            "message": "Texte extrait. Le découpage sera connecté à l'étape suivante.",
+            "message": "Texte extrait et découpé. Les embeddings seront connectés ensuite.",
         }
     for error in st.session_state.errors:
         st.error(error)
-    if st.session_state.indexing_status == "extracted":
+    if st.session_state.indexing_status == "chunked":
         st.info(st.session_state.indexing_report["message"], icon="✅")
-        with st.expander("Aperçu du texte extrait"):
-            for document in st.session_state.extracted_documents[:5]:
-                page = document.metadata.get("page")
+        with st.expander("Contrôler les premiers chunks"):
+            for chunk in st.session_state.chunks[:5]:
+                page = chunk.metadata.get("page")
                 location = f" — page {page}" if page else ""
-                st.markdown(f"**{document.metadata['source']}{location}**")
-                preview = document.page_content[:1200]
-                st.text(preview + ("…" if len(document.page_content) > 1200 else ""))
+                index = chunk.metadata["chunk_index"]
+                st.markdown(
+                    f"**{chunk.metadata['source']}{location} — chunk {index} "
+                    f"({len(chunk.page_content)} caractères)**"
+                )
+                st.text(chunk.page_content)
     if st.session_state.messages:
         render_history()
     else:
