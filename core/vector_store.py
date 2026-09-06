@@ -134,3 +134,23 @@ def remove_saved_upload(document_id: str, uploads_dir: str | Path | None = None)
     for candidate in target_dir.glob(f"{document_id}.*"):
         if candidate.is_file():
             candidate.unlink()
+
+
+def load_saved_upload(
+    document: LibraryDocument,
+    uploads_dir: str | Path | None = None,
+) -> FileCandidate:
+    target_dir = Path(uploads_dir or settings.uploads_dir)
+    matches = [path for path in target_dir.glob(f"{document.document_id}.*") if path.is_file()]
+    if not matches:
+        raise FileNotFoundError(f"Copie locale introuvable pour {document.source}.")
+    path = matches[0]
+    return FileCandidate(
+        name=document.source,
+        data=path.read_bytes(),
+        extension=path.suffix.lower(),
+        file_type=document.file_type,
+        size_bytes=document.size_bytes,
+        file_hash=document.file_hash,
+        status="accepted",
+    )

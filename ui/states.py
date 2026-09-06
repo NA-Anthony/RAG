@@ -18,6 +18,9 @@ DEFAULT_STATE: dict[str, Any] = {
     "indexing_status": "idle",
     "indexing_report": None,
     "errors": None,
+    "confirm_delete_id": "",
+    "confirm_clear": False,
+    "library_notice": "",
 }
 
 

@@ -7,9 +7,9 @@ import streamlit as st
 from config.settings import settings
 from core.document_loader import load_candidates
 from core.embeddings import embed_chunks
-from core.ingestion import persist_ingestion
+from core.ingestion import clear_library, delete_from_library, persist_ingestion
 from core.text_splitter import split_documents
-from core.vector_store import VectorStore
+from core.vector_store import VectorStore, load_saved_upload
 from ui.chat import handle_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
 from ui.states import init_session_state
@@ -36,51 +36,95 @@ def get_vector_store() -> VectorStore:
     return VectorStore()
 
 
+def run_indexing(
+    store: VectorStore,
+    selected_files: list,
+    *,
+    replace_document_ids: set[str] | None = None,
+) -> None:
+    with st.status("Indexation locale des documents…", expanded=True) as status:
+        result = load_candidates(selected_files)
+        st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
+        st.session_state.extracted_documents = result.documents
+        st.session_state.errors = result.errors
+        if result.documents:
+            st.write("Découpage en fragments avec conservation des sources…")
+            st.session_state.chunks = split_documents(
+                result.documents,
+                chunk_size=settings.chunk_size,
+                chunk_overlap=settings.chunk_overlap,
+            )
+            st.write(f"{len(st.session_state.chunks)} chunk(s) créé(s).")
+            st.write("Chargement du modèle local et création des embeddings…")
+            st.session_state.chunk_embeddings = embed_chunks(
+                [chunk.page_content for chunk in st.session_state.chunks]
+            )
+            dimension = len(st.session_state.chunk_embeddings[0])
+            st.write(
+                f"{len(st.session_state.chunk_embeddings)} vecteur(s) de dimension {dimension} créé(s)."
+            )
+            for document_id in replace_document_ids or set():
+                store.delete_document(document_id)
+            st.write("Enregistrement dans la base vectorielle persistante…")
+            report = persist_ingestion(
+                store,
+                selected_files,
+                st.session_state.chunks,
+                st.session_state.chunk_embeddings,
+            )
+            st.session_state.indexing_report = {
+                "documents": report.document_count,
+                "chunks": report.chunk_count,
+                "message": (
+                    f"{report.document_count} document(s) et {report.chunk_count} chunk(s) "
+                    "indexés localement."
+                ),
+            }
+        st.session_state.indexing_status = "indexed" if result.documents else "failed"
+        status.update(
+            label="Indexation terminée" if result.documents else "Échec de l'indexation",
+            state="complete" if result.documents else "error",
+        )
+
+
 def main() -> None:
     load_styles()
     init_session_state()
     store = get_vector_store()
-    _, selected_files, index_requested = render_sidebar(indexed_hashes=store.known_hashes())
+    library = store.list_documents()
+    _, selected_files, index_requested, library_action = render_sidebar(library=library)
+    if library_action:
+        action_type = library_action["type"]
+        if action_type == "delete":
+            document = library_action["document"]
+            delete_from_library(store, document.document_id)
+            st.session_state.library_notice = f"{document.source} a été supprimé."
+            st.session_state.messages = []
+            st.session_state.indexing_status = "idle"
+            st.session_state.chunks = []
+            st.rerun()
+        if action_type == "clear":
+            clear_library(store)
+            st.session_state.library_notice = "La bibliothèque a été vidée."
+            st.session_state.messages = []
+            st.session_state.indexing_status = "idle"
+            st.session_state.chunks = []
+            st.rerun()
+        if action_type == "reindex":
+            document = library_action["document"]
+            try:
+                candidate = load_saved_upload(document)
+            except FileNotFoundError as error:
+                st.error(str(error))
+            else:
+                run_indexing(store, [candidate], replace_document_ids={document.document_id})
+                st.session_state.library_notice = f"{document.source} a été réindexé."
+                st.rerun()
+    if st.session_state.library_notice:
+        st.success(st.session_state.library_notice)
+        st.session_state.library_notice = ""
     if index_requested:
-        with st.status("Extraction locale des documents…", expanded=True) as status:
-            result = load_candidates(selected_files)
-            st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
-            st.session_state.extracted_documents = result.documents
-            st.session_state.errors = result.errors
-            if result.documents:
-                st.write("Découpage en fragments avec conservation des sources…")
-                st.session_state.chunks = split_documents(
-                    result.documents,
-                    chunk_size=settings.chunk_size,
-                    chunk_overlap=settings.chunk_overlap,
-                )
-                st.write(f"{len(st.session_state.chunks)} chunk(s) créé(s).")
-                st.write("Chargement du modèle local et création des embeddings…")
-                st.session_state.chunk_embeddings = embed_chunks(
-                    [chunk.page_content for chunk in st.session_state.chunks]
-                )
-                dimension = len(st.session_state.chunk_embeddings[0])
-                st.write(f"{len(st.session_state.chunk_embeddings)} vecteur(s) de dimension {dimension} créé(s).")
-                st.write("Enregistrement dans la base vectorielle persistante…")
-                report = persist_ingestion(
-                    store,
-                    selected_files,
-                    st.session_state.chunks,
-                    st.session_state.chunk_embeddings,
-                )
-                st.session_state.indexing_report = {
-                    "documents": report.document_count,
-                    "chunks": report.chunk_count,
-                    "message": (
-                        f"{report.document_count} document(s) et {report.chunk_count} chunk(s) "
-                        "indexés localement."
-                    ),
-                }
-            st.session_state.indexing_status = "indexed" if result.documents else "failed"
-            status.update(
-                label="Extraction terminée" if result.documents else "Échec de l'extraction",
-                state="complete" if result.documents else "error",
-            )
+        run_indexing(store, selected_files)
     for error in st.session_state.errors:
         st.error(error)
     if st.session_state.indexing_status == "indexed":

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from langchain_core.documents import Document
 
 from core.file_validation import FileCandidate
-from core.vector_store import VectorStore, save_upload
+from core.vector_store import VectorStore, remove_saved_upload, save_upload
 
 
 @dataclass(frozen=True)
@@ -36,3 +36,15 @@ def persist_ingestion(
     for candidate in fresh_candidates:
         save_upload(candidate)
     return IngestionReport(document_count=len(fresh_candidates), chunk_count=stored)
+
+
+def delete_from_library(store: VectorStore, document_id: str) -> None:
+    store.delete_document(document_id)
+    remove_saved_upload(document_id)
+
+
+def clear_library(store: VectorStore) -> None:
+    document_ids = [document.document_id for document in store.list_documents()]
+    store.clear()
+    for document_id in document_ids:
+        remove_saved_upload(document_id)
