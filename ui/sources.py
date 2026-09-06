@@ -6,24 +6,6 @@ import html
 import streamlit as st
 
 
-def render_mock_sources() -> None:
-    """Affiche des sources fictives pour valider le design."""
-    with st.expander("Voir les 2 sources fictives"):
-        render_source(
-            "guide-projet.pdf",
-            "Le projet indexe les documents localement et conserve chaque source.",
-            page=3,
-            chunk_index=4,
-            relevance="élevée",
-        )
-        render_source(
-            "notes.md",
-            "La recherche sémantique fonctionne sans appeler le modèle génératif.",
-            chunk_index=2,
-            relevance="moyenne",
-        )
-
-
 def render_source(
     source: str,
     content: str,

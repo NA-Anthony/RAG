@@ -7,19 +7,26 @@ import streamlit as st
 from core.retrieval import semantic_search
 from core.rag import OllamaUnavailableError, stream_rag_answer
 from core.vector_store import VectorStore
-from ui.sources import render_mock_sources, render_sources
+from ui.sources import render_sources
 from ui.states import add_message
 
 
-def render_welcome() -> None:
+def render_welcome(document_count: int = 0) -> None:
     st.markdown('<span class="rag-eyebrow">100 % local</span>', unsafe_allow_html=True)
-    st.markdown(
-        '<h1 class="rag-hero">Interrogez vos documents sans les envoyer ailleurs.</h1>',
-        unsafe_allow_html=True,
+    title = (
+        "Votre bibliothèque locale est prête à répondre."
+        if document_count
+        else "Interrogez vos documents sans les envoyer ailleurs."
     )
+    st.markdown(f'<h1 class="rag-hero">{title}</h1>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="rag-subtitle">Ajoutez vos sources, indexez-les, puis choisissez '
-        "entre les extraits bruts et une réponse rédigée par Ollama.</p>",
+        '<p class="rag-subtitle">'
+        + (
+            f"{document_count} document(s) disponible(s). Posez une question ou ajoutez d'autres sources."
+            if document_count
+            else "Ajoutez vos sources, indexez-les, puis choisissez entre les extraits bruts et une réponse rédigée par Ollama."
+        )
+        + "</p>",
         unsafe_allow_html=True,
     )
 
@@ -38,19 +45,6 @@ def render_welcome() -> None:
                 "</div>",
                 unsafe_allow_html=True,
             )
-
-
-def render_mock_conversation() -> None:
-    st.divider()
-    st.caption("Aperçu de la conversation finale avec données fictives")
-    with st.chat_message("user"):
-        st.write("Quels sont les objectifs principaux du projet ?")
-    with st.chat_message("assistant"):
-        st.write(
-            "Le projet vise à indexer les documents localement et à rendre chaque "
-            "réponse vérifiable grâce aux extraits d'origine."
-        )
-        render_mock_sources()
 
 
 def render_history() -> None:
@@ -73,7 +67,8 @@ def handle_question(store: VectorStore) -> None:
         return
     add_message("user", question)
     if st.session_state.mode == "rag":
-        results = semantic_search(store, question)
+        with st.spinner("Recherche des extraits pertinents…"):
+            results = semantic_search(store, question)
         if not results:
             add_message(
                 "assistant",
@@ -93,7 +88,8 @@ def handle_question(store: VectorStore) -> None:
                     mode="rag",
                 )
     else:
-        results = semantic_search(store, question)
+        with st.spinner("Recherche sémantique locale…"):
+            results = semantic_search(store, question)
         if results:
             add_message(
                 "assistant",

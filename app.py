@@ -43,11 +43,13 @@ def run_indexing(
     replace_document_ids: set[str] | None = None,
 ) -> None:
     with st.status("Indexation locale des documents…", expanded=True) as status:
-        result = load_candidates(selected_files)
-        st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
-        st.session_state.extracted_documents = result.documents
-        st.session_state.errors = result.errors
-        if result.documents:
+        try:
+            result = load_candidates(selected_files)
+            st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
+            st.session_state.extracted_documents = result.documents
+            st.session_state.errors = list(result.errors)
+            if not result.documents:
+                raise ValueError("Aucun texte exploitable n'a pu être extrait.")
             st.write("Découpage en fragments avec conservation des sources…")
             st.session_state.chunks = split_documents(
                 result.documents,
@@ -80,10 +82,17 @@ def run_indexing(
                     "indexés localement."
                 ),
             }
-        st.session_state.indexing_status = "indexed" if result.documents else "failed"
+        except Exception as error:  # noqa: BLE001 - frontière UI
+            st.session_state.indexing_status = "failed"
+            message = f"Indexation interrompue : {error}"
+            if message not in st.session_state.errors:
+                st.session_state.errors.append(message)
+            status.update(label="Échec de l'indexation", state="error")
+            return
+        st.session_state.indexing_status = "indexed"
         status.update(
-            label="Indexation terminée" if result.documents else "Échec de l'indexation",
-            state="complete" if result.documents else "error",
+            label="Indexation terminée",
+            state="complete",
         )
 
 
@@ -93,6 +102,8 @@ def main() -> None:
     store = get_vector_store()
     library = store.list_documents()
     _, selected_files, index_requested, library_action = render_sidebar(library=library)
+    mode_label = "Assistant RAG · Ollama local" if st.session_state.mode == "rag" else "Recherche sémantique · sans LLM"
+    st.caption(f"Mode actif : {mode_label}")
     if library_action:
         action_type = library_action["type"]
         if action_type == "delete":
@@ -142,7 +153,7 @@ def main() -> None:
     if st.session_state.messages:
         render_history()
     else:
-        render_welcome()
+        render_welcome(len(library))
     handle_question(store)
 
 
