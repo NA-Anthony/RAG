@@ -5,8 +5,9 @@ from __future__ import annotations
 import streamlit as st
 
 from config.settings import settings
-from ui.chat import render_mock_conversation, render_welcome
-from ui.sidebar import render_sidebar_mock
+from ui.chat import handle_mock_question, render_history, render_welcome
+from ui.sidebar import render_sidebar
+from ui.states import init_session_state
 
 
 st.set_page_config(
@@ -27,10 +28,13 @@ def load_styles() -> None:
 
 def main() -> None:
     load_styles()
-    render_sidebar_mock()
-    render_welcome()
-    render_mock_conversation()
-    st.chat_input("Indexez un document pour poser une question", disabled=True)
+    init_session_state()
+    render_sidebar()
+    if st.session_state.messages:
+        render_history()
+    else:
+        render_welcome()
+    handle_mock_question()
 
 
 if __name__ == "__main__":
