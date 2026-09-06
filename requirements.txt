@@ -1,0 +1,19 @@
+# Interface utilisateur
+streamlit
+
+# Composants principaux de LangChain
+langchain
+langchain-community
+langchain-text-splitters
+
+# Intégrations locales utilisées par le projet
+langchain-chroma
+langchain-huggingface
+langchain-ollama
+
+# Base vectorielle et embeddings locaux
+chromadb
+sentence-transformers
+
+# Lecture des documents PDF
+pymupdf

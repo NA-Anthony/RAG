@@ -1,0 +1,24 @@
+# Environnement Python local
+.venv/
+
+# Fichiers générés par Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Données locales de l'application
+data/chroma_db/
+data/uploads/
+
+# Configuration privée
+.env
+.streamlit/secrets.toml
+
+# Guide de travail personnel — conservé uniquement sur cet appareil
+PLAN_PROJET_LOCAL.md
+
+# Fichiers macOS et éditeurs
+.DS_Store
+.idea/
+.vscode/
