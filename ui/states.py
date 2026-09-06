@@ -11,6 +11,7 @@ DEFAULT_STATE: dict[str, Any] = {
     "messages": None,
     "mode": "search",
     "selected_files": None,
+    "extracted_documents": None,
     "indexed_documents": None,
     "indexing_status": "idle",
     "indexing_report": None,

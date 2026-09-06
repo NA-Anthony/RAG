@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from config.settings import settings
+from core.document_loader import load_candidates
 from ui.chat import handle_mock_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
 from ui.states import init_session_state
@@ -31,13 +32,31 @@ def main() -> None:
     init_session_state()
     _, selected_files, index_requested = render_sidebar()
     if index_requested:
-        st.session_state.indexing_status = "validated"
+        with st.status("Extraction locale des documents…", expanded=True) as status:
+            result = load_candidates(selected_files)
+            st.write(f"{len(result.documents)} page(s) ou document(s) texte extrait(s).")
+            st.session_state.extracted_documents = result.documents
+            st.session_state.errors = result.errors
+            st.session_state.indexing_status = "extracted" if result.documents else "failed"
+            status.update(
+                label="Extraction terminée" if result.documents else "Échec de l'extraction",
+                state="complete" if result.documents else "error",
+            )
         st.session_state.indexing_report = {
             "documents": len(selected_files),
-            "message": "Fichiers validés. L'extraction sera connectée à l'étape suivante.",
+            "message": "Texte extrait. Le découpage sera connecté à l'étape suivante.",
         }
-    if st.session_state.indexing_status == "validated":
+    for error in st.session_state.errors:
+        st.error(error)
+    if st.session_state.indexing_status == "extracted":
         st.info(st.session_state.indexing_report["message"], icon="✅")
+        with st.expander("Aperçu du texte extrait"):
+            for document in st.session_state.extracted_documents[:5]:
+                page = document.metadata.get("page")
+                location = f" — page {page}" if page else ""
+                st.markdown(f"**{document.metadata['source']}{location}**")
+                preview = document.page_content[:1200]
+                st.text(preview + ("…" if len(document.page_content) > 1200 else ""))
     if st.session_state.messages:
         render_history()
     else:
