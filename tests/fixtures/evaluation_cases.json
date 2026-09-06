@@ -1,0 +1,17 @@
+[
+  {
+    "question": "Quelle est la fonction du mode Recherche sémantique ?",
+    "expected_source": "guide.md",
+    "expected_ideas": ["chunks", "sans LLM"]
+  },
+  {
+    "question": "Comment les sources sont-elles présentées ?",
+    "expected_source": "guide.md",
+    "expected_ideas": ["fichier", "page", "chunk"]
+  },
+  {
+    "question": "Quel est le chiffre d'affaires de l'entreprise ?",
+    "expected_source": null,
+    "expected_ideas": ["ne permettent pas de répondre"]
+  }
+]
