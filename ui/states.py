@@ -32,7 +32,18 @@ def reset_conversation() -> None:
     st.session_state.messages = []
 
 
-def add_message(role: str, content: str, *, sources: list[dict] | None = None) -> None:
+def add_message(
+    role: str,
+    content: str,
+    *,
+    sources: list[dict] | None = None,
+    mode: str | None = None,
+) -> None:
     st.session_state.messages.append(
-        {"role": role, "content": content, "sources": sources or []}
+        {
+            "role": role,
+            "content": content,
+            "sources": sources or [],
+            "mode": mode,
+        }
     )

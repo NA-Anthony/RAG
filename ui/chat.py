@@ -7,7 +7,7 @@ import streamlit as st
 from core.retrieval import semantic_search
 from core.rag import OllamaUnavailableError, stream_rag_answer
 from core.vector_store import VectorStore
-from ui.sources import render_mock_sources, render_source
+from ui.sources import render_mock_sources, render_sources
 from ui.states import add_message
 
 
@@ -58,8 +58,8 @@ def render_history() -> None:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
-            for source in message.get("sources", []):
-                render_source(**source)
+            sources = message.get("sources", [])
+            render_sources(sources, collapsed=message.get("mode") == "rag")
 
 
 def handle_question(store: VectorStore) -> None:
@@ -90,6 +90,7 @@ def handle_question(store: VectorStore) -> None:
                     "assistant",
                     response,
                     sources=[result.as_source() for result in results],
+                    mode="rag",
                 )
     else:
         results = semantic_search(store, question)
@@ -98,6 +99,7 @@ def handle_question(store: VectorStore) -> None:
                 "assistant",
                 f"{len(results)} passage(s) pertinent(s) trouvé(s), sans génération de texte.",
                 sources=[result.as_source() for result in results],
+                mode="search",
             )
         else:
             add_message(
