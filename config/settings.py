@@ -28,6 +28,7 @@ class Settings:
     max_file_size_mb: int = 25
     uploads_dir: Path = PROJECT_ROOT / "data" / "uploads"
     chroma_dir: Path = PROJECT_ROOT / "data" / "chroma_db"
+    model_cache_dir: Path = PROJECT_ROOT / os.getenv("RAG_MODEL_CACHE", "data/models")
     styles_path: Path = PROJECT_ROOT / "assets" / "styles.css"
 
 

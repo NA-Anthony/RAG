@@ -6,6 +6,7 @@ import streamlit as st
 
 from config.settings import settings
 from core.document_loader import load_candidates
+from core.embeddings import embed_chunks
 from core.text_splitter import split_documents
 from ui.chat import handle_mock_question, render_history, render_welcome
 from ui.sidebar import render_sidebar
@@ -46,18 +47,24 @@ def main() -> None:
                     chunk_overlap=settings.chunk_overlap,
                 )
                 st.write(f"{len(st.session_state.chunks)} chunk(s) créé(s).")
-            st.session_state.indexing_status = "chunked" if result.documents else "failed"
+                st.write("Chargement du modèle local et création des embeddings…")
+                st.session_state.chunk_embeddings = embed_chunks(
+                    [chunk.page_content for chunk in st.session_state.chunks]
+                )
+                dimension = len(st.session_state.chunk_embeddings[0])
+                st.write(f"{len(st.session_state.chunk_embeddings)} vecteur(s) de dimension {dimension} créé(s).")
+            st.session_state.indexing_status = "embedded" if result.documents else "failed"
             status.update(
                 label="Extraction terminée" if result.documents else "Échec de l'extraction",
                 state="complete" if result.documents else "error",
             )
         st.session_state.indexing_report = {
             "documents": len(selected_files),
-            "message": "Texte extrait et découpé. Les embeddings seront connectés ensuite.",
+            "message": "Texte extrait, découpé et vectorisé localement.",
         }
     for error in st.session_state.errors:
         st.error(error)
-    if st.session_state.indexing_status == "chunked":
+    if st.session_state.indexing_status == "embedded":
         st.info(st.session_state.indexing_report["message"], icon="✅")
         with st.expander("Contrôler les premiers chunks"):
             for chunk in st.session_state.chunks[:5]:

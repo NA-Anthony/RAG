@@ -13,6 +13,7 @@ DEFAULT_STATE: dict[str, Any] = {
     "selected_files": None,
     "extracted_documents": None,
     "chunks": None,
+    "chunk_embeddings": None,
     "indexed_documents": None,
     "indexing_status": "idle",
     "indexing_report": None,

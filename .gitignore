@@ -12,6 +12,7 @@ __pycache__/
 data/chroma_db/
 data/uploads/
 data/ollama_models/
+data/models/
 
 # Configuration privée
 .env
