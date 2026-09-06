@@ -29,7 +29,15 @@ def load_styles() -> None:
 def main() -> None:
     load_styles()
     init_session_state()
-    render_sidebar()
+    _, selected_files, index_requested = render_sidebar()
+    if index_requested:
+        st.session_state.indexing_status = "validated"
+        st.session_state.indexing_report = {
+            "documents": len(selected_files),
+            "message": "Fichiers validés. L'extraction sera connectée à l'étape suivante.",
+        }
+    if st.session_state.indexing_status == "validated":
+        st.info(st.session_state.indexing_report["message"], icon="✅")
     if st.session_state.messages:
         render_history()
     else:
